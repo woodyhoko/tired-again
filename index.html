@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retirement Calculator</title>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        label, input, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button {
+            width: auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+	<script>
+        function calculateTax(annualIncome) {
+            // Simplified U.S. federal tax brackets for single filers as of 2023
+            var taxBrackets = [
+                { limit: 10275, rate: 0.10 },
+                { limit: 41775, rate: 0.12 },
+                { limit: 89075, rate: 0.22 },
+                { limit: 170050, rate: 0.24 },
+                { limit: 215950, rate: 0.32 },
+                { limit: 539900, rate: 0.35 },
+                { limit: Infinity, rate: 0.37 }
+            ];
+            var tax = 0;
+            var remainingIncome = annualIncome;
+
+            for (var i = 0; i < taxBrackets.length; i++) {
+                var bracket = taxBrackets[i];
+                var incomeInBracket = Math.min(remainingIncome, bracket.limit);
+                tax += incomeInBracket * bracket.rate;
+                remainingIncome -= incomeInBracket;
+
+                if (remainingIncome <= 0) {
+                    break;
+                }
+            }
+
+            return tax;
+        }
+
+        function calculateRetirement() {
+            // Inputs
+            var currentAge = parseInt(document.getElementById("currentAge").value);
+            var annualIncome = parseFloat(document.getElementById("annualIncome").value);
+            var monthlyExpenses = parseFloat(document.getElementById("monthlyExpenses").value);
+            var housePrice = parseFloat(document.getElementById("housePrice").value);
+            var downPaymentPercentage = parseFloat(document.getElementById("downPaymentPercentage").value) / 100;
+			var mortgageInterestRate = parseFloat(document.getElementById("mortgageInterestRate").value) / 100;
+			var mortgageTerm = parseInt(document.getElementById("mortgageTerm").value);
+			var investmentReturnRate = parseFloat(document.getElementById("investmentReturnRate").value) / 100;
+			var inflationRate = parseFloat(document.getElementById("inflationRate").value) / 100;        // Tax calculation
+			var annualTax = calculateTax(annualIncome);
+			var monthlyIncomeAfterTax = (annualIncome - annualTax) / 12;
+			
+			// More calculations
+			var monthlySavings = monthlyIncomeAfterTax - monthlyExpenses;
+			var downPaymentAmount = housePrice * downPaymentPercentage;
+			var loanAmount = housePrice - downPaymentAmount;
+			var monthlyMortgagePayment = (mortgageInterestRate / 12 * loanAmount) / (1 - Math.pow(1 + mortgageInterestRate / 12, -mortgageTerm * 12));
+			var monthsToSaveForDownPayment = downPaymentAmount / monthlySavings;
+			var futureMonthlyExpenses = monthlyExpenses * Math.pow(1 + inflationRate, mortgageTerm);
+			var monthlyRetirementExpenses = futureMonthlyExpenses + monthlyMortgagePayment;
+			var desiredRetirementFund = monthlyRetirementExpenses * 12 / 0.04;
+			var monthlyInvestmentReturnRate = Math.pow(1 + investmentReturnRate, 1/12) - 1;
+			var totalMonthsToRetirement = monthsToSaveForDownPayment + Math.log(desiredRetirementFund * monthlyInvestmentReturnRate / monthlySavings + 1) / Math.log(1 + monthlyInvestmentReturnRate);
+			var retirementAge = currentAge + totalMonthsToRetirement / 12;
+
+			// Output
+			document.getElementById("retirementAge").innerText = "Estimated Retirement Age: " + retirementAge.toFixed(2) + " years old";
+			
+			updateChart(
+				savingsChart,
+				currentAge,
+				monthlySavings,
+				retirementAge,
+				monthlyInvestmentReturnRate
+			);
+		}
+		
+		// Function to update the chart
+        function updateChart(chart, currentAge, monthlySavings, retirementAge, monthlyInvestmentReturnRate) {
+            var labels = [];
+            var data = [];
+            var totalSavings = 0;
+            for (var age = currentAge; age <= 80; age++) {
+                labels.push(age);
+                totalSavings += monthlySavings * 12 * Math.pow(1 + monthlyInvestmentReturnRate, age - currentAge);
+                data.push(totalSavings);
+            }
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update();
+        }
+
+        // Function to create the chart
+        function createChart() {
+            var ctx = document.getElementById('savingsChart').getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Savings',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {}
+            });
+        }
+		
+		// Create the chart when the page loads
+        var savingsChart;
+        window.onload = function() {
+            savingsChart = createChart();
+        };
+</script>
+</head>
+<body>
+    <div class="container">
+        <h1>Retirement Calculator</h1>
+        <div>
+            <label for="currentAge">Current Age:</label>
+            <input type="number" id="currentAge" oninput="calculateRetirement()" required>
+        </div>
+        <div>
+            <label for="annualIncome">Annual Income (Before Tax):</label>
+            <input type="number" id="annualIncome" oninput="calculateRetirement()" required>
+        </div>
+        <div>
+            <label for="monthlyExpenses">Monthly Expenses:</label>
+            <input type="number" id="monthlyExpenses" oninput="calculateRetirement()" required>
+        </div>
+		 <div>
+		<label for="housePrice">Price of House:</label>
+		<input type="number" id="housePrice" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<label for="downPaymentPercentage">Down Payment Percentage:</label>
+		<input type="number" id="downPaymentPercentage" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<label for="mortgageInterestRate">Mortgage Interest Rate (%):</label>
+		<input type="number" id="mortgageInterestRate" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<label for="mortgageTerm">Mortgage Term (Years):</label>
+		<input type="number" id="mortgageTerm" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<label for="investmentReturnRate">Expected Investment Return Rate (%):</label>
+		<input type="number" id="investmentReturnRate" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<label for="inflationRate">Inflation Rate (%):</label>
+		<input type="number" id="inflationRate" oninput="calculateRetirement()" required>
+		</div>
+		<div>
+		<button onclick="calculateRetirement()">Calculate Retirement Age</button>
+		<p id="retirementAge"></p>
+		</div>
+		<canvas id="savingsChart"></canvas>
+</body>
+</html>
