@@ -146,7 +146,8 @@
         principal,
         annualInterestRate,
         loanYears,
-        year
+        lastPrincipal,
+        paymentsMade
       ) {
         const monthlyPayment = calculateMonthlyPayment(
           principal,
@@ -155,8 +156,7 @@
         );
         let totalInterest = 0;
         let totalPrincipal = 0;
-        let currentBalance = principal;
-        let paymentsMade = year*12;
+        let currentBalance = lastPrincipal;
 
         for (let month = 1; month <= 12; month++) {
           if (paymentsMade >= loanYears * 12) break;
@@ -234,7 +234,7 @@
         var retirementAge = currentAge + totalMonthsToRetirement / 12;
 
         let latestInterest = 0;
-        let latestPrincipal = 0;
+        let latestPrincipal = loanAmount;
         let totalSavings = [currentSavings];
         let houseOwned = false;
         let houseOwnedAge = 0;
@@ -266,23 +266,23 @@
             spendingMonthly +=
               monthlyMortgagePayment + (housePrice * 0.01) / 12;
             let result = calculateYearlyAmortization(
-              loanAmount - latestPrincipal,
+              loanAmount,
               mortgageInterestRate,
               30,
-              currentAge - houseOwnedAge,
-              
+              latestPrincipal
             );
+            
             monthlyEarn =
               (annualIncome +
                 currentMoney * investmentReturnRate -
                 calculateTax(
                   annualIncome +
                     currentMoney * investmentReturnRate -
-                    (Math.min(result.totalInterest, 750000) - latestInterest)
+                    Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest))
                 )) /
               12;
-            latestPrincipal = result.totalPrincipal;
-            latestInterest = result.totalInterest;
+            latestPrincipal -= result.totalPrincipal;
+            latestInterest += result.totalInterest;
           }
 
           if (
