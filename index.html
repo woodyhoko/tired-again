@@ -263,7 +263,7 @@
                 Math.pow(1 + inflationRate, totalSavings.length - 1);
             }
           } else {
-            if (totalSavings.length - houseOwnedAge - currentAge -1 < mortgageTerm) {
+            if (totalSavings.length - (houseOwnedAge - currentAge) -1 < mortgageTerm) {
               spendingMonthly += monthlyMortgagePayment;
             }
             // property tax.
