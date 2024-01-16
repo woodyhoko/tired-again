@@ -263,8 +263,11 @@
                 Math.pow(1 + inflationRate, totalSavings.length - 1);
             }
           } else {
-            spendingMonthly +=
-              monthlyMortgagePayment + (housePrice * 0.01) / 12;
+            if (totalSavings.length - houseOwnedAge -1 < mortgageTerm) {
+              spendingMonthly += monthlyMortgagePayment;
+            }
+            // property tax.
+            spendingMonthly += housePrice * 0.01 / 12;
             let result = calculateYearlyAmortization(
               loanAmount,
               mortgageInterestRate,
