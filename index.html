@@ -146,8 +146,7 @@
         principal,
         annualInterestRate,
         loanYears,
-        year,
-        paymentsMade
+        year
       ) {
         const monthlyPayment = calculateMonthlyPayment(
           principal,
@@ -157,6 +156,7 @@
         let totalInterest = 0;
         let totalPrincipal = 0;
         let currentBalance = principal;
+        let paymentsMade = year*12;
 
         for (let month = 1; month <= 12; month++) {
           if (paymentsMade >= loanYears * 12) break;
@@ -269,7 +269,8 @@
               loanAmount - latestPrincipal,
               mortgageInterestRate,
               30,
-              currentAge - houseOwnedAge
+              currentAge - houseOwnedAge,
+              
             );
             monthlyEarn =
               (annualIncome +
@@ -286,7 +287,8 @@
 
           if (
             !retire && houseOwned &&
-            currentMoney * 0.04 - calculateTax(currentMoney * 0.04) >
+            (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate))*0.85 >
               spendingMonthly * 12
           ) {
             retire = true;
@@ -328,7 +330,8 @@
 
           if (
             !retireNoHome &&
-            currentMoney * 0.04 - calculateTax(currentMoney * 0.04) >
+            (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate))*0.85 >
               spendingMonthly * 12
           ) {
             retireNoHome = true;
