@@ -291,6 +291,8 @@
           100;
         var inflationRate =
           parseFloat(document.getElementById("inflationRate").value) / 100; // Tax calculation
+        var yearlyIncomeIncrease =
+        parseFloat(document.getElementById("yearlyIncomeIncrease").value) / 100; // Tax calculation
         var forceRetireAge =
           parseInt(document.getElementById("forceRetireAge").value); // Tax calculation
         forceShow = forceRetireAge == forceRetireAge;
@@ -329,16 +331,17 @@
         let houseOwnedAge = 0;
         let retire = false;
         let retireAge = 0;
+        let currentAnnualIncome = annualIncome;
         for (let age = currentAge; age++ < 100; ) {
           let currentMoney = totalSavings.at(-1);
           let spendingMonthly =
             monthlyExpenses *
             Math.pow(1 + inflationRate, totalSavings.length - 1);
           let monthlyEarn =
-            (annualIncome +
+            (currentAnnualIncome +
               currentMoney * investmentReturnRate -
               calculateTax(
-                annualIncome + currentMoney * investmentReturnRate, location
+                currentAnnualIncome + currentMoney * investmentReturnRate, location
               )) /
             12;
           if (!houseOwned) {
@@ -377,10 +380,10 @@
               incomeDeductable = 0;
             }
             monthlyEarn =
-              (annualIncome +
+              (currentAnnualIncome +
                 currentMoney * investmentReturnRate -
                 calculateTax(
-                  annualIncome +
+                  currentAnnualIncome +
                     currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
             latestPrincipal -= result.totalPrincipal;
             latestInterest += result.totalInterest;
@@ -409,6 +412,7 @@
               currentMoney + (monthlyEarn - spendingMonthly) * 12
             );
           }
+          currentAnnualIncome*= 1+yearlyIncomeIncrease;
         }
 
         let totalSavingsForceRetire = [];
@@ -420,16 +424,17 @@
           houseOwnedAge = 0;
           retire = false;
           retireAge2 = 0;
+          currentAnnualIncome = annualIncome;
           for (let age = currentAge; age++ < 100; ) {
             let currentMoney = totalSavingsForceRetire.at(-1);
             let spendingMonthly =
               monthlyExpenses *
               Math.pow(1 + inflationRate, totalSavingsForceRetire.length - 1);
             let monthlyEarn =
-              (annualIncome +
+              (currentAnnualIncome +
                 currentMoney * investmentReturnRate -
                 calculateTax(
-                  annualIncome + currentMoney * investmentReturnRate, location
+                  currentAnnualIncome + currentMoney * investmentReturnRate, location
                 )) /
               12;
             if (!houseOwned) {
@@ -468,10 +473,10 @@
                 incomeDeductable = 0;
               }
               monthlyEarn =
-                (annualIncome +
+                (currentAnnualIncome +
                   currentMoney * investmentReturnRate -
                   calculateTax(
-                    annualIncome +
+                    currentAnnualIncome +
                       currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
               latestPrincipal -= result.totalPrincipal;
               latestInterest += result.totalInterest;
@@ -497,12 +502,14 @@
                 currentMoney + (monthlyEarn - spendingMonthly) * 12
               );
             }
+            currentAnnualIncome *= 1+yearlyIncomeIncrease;
           }
         }
 
         let retireNoHome = false;
         let retireAgeNoHome = 0;
         let totalSavingsNoHome = [currentSavings];
+        currentAnnualIncome = annualIncome;
         for (let age = currentAge; age++ < 100; ) {
           let currentMoney = totalSavingsNoHome.at(-1);
           let spendingMonthly =
@@ -511,10 +518,10 @@
             monthlyRent *
               Math.pow(1 + inflationRate, totalSavingsNoHome.length - 1);
           let monthlyEarn =
-            (annualIncome +
+            (currentAnnualIncome +
               currentMoney * investmentReturnRate -
               calculateTax(
-                annualIncome + currentMoney * investmentReturnRate, location
+                currentAnnualIncome + currentMoney * investmentReturnRate, location
               )) /
             12;
 
@@ -541,6 +548,7 @@
               currentMoney + (monthlyEarn - spendingMonthly) * 12
             );
           }
+          currentAnnualIncome *= 1+yearlyIncomeIncrease;
         }
         
         let totalSavingsNoHomeForceRetire;
@@ -548,6 +556,7 @@
           retireNoHome = false;
           retireAgeNoHome2 = 0;
           totalSavingsNoHomeForceRetire = [currentSavings];
+          currentAnnualIncome = annualIncome;
           for (let age = currentAge; age++ < 100; ) {
             let currentMoney = totalSavingsNoHomeForceRetire.at(-1);
             let spendingMonthly =
@@ -556,10 +565,10 @@
               monthlyRent *
                 Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1);
             let monthlyEarn =
-              (annualIncome +
+              (currentAnnualIncome +
                 currentMoney * investmentReturnRate -
                 calculateTax(
-                  annualIncome + currentMoney * investmentReturnRate, location
+                  currentAnnualIncome + currentMoney * investmentReturnRate, location
                 )) /
               12;
   
@@ -583,6 +592,7 @@
                 currentMoney + (monthlyEarn - spendingMonthly) * 12
               );
             }
+            currentAnnualIncome *= 1+yearlyIncomeIncrease;
           }
         }
 
@@ -832,6 +842,16 @@
             id="inflationRate"
             oninput="calculateRetirement()"
             value="2"
+            required
+            />
+        </div>
+        <div>
+          <label for="yearlyIncomeIncrease">Annual Pay Raise Rate:</label>
+            <input
+            type="number"
+            id="yearlyIncomeIncrease"
+            oninput="calculateRetirement()"
+            value="3"
             required
             />
         </div>
