@@ -379,7 +379,10 @@
             );
             
             if (location == "US, CA"){
+              // mortgage interest deduction
               incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
+              // property tax deduction
+              incomeDeductable += Math.min(propertyTaxPerMonth*12, 10000);
             }
             latestPrincipal -= result.totalPrincipal;
             latestInterest += result.totalInterest;
@@ -475,7 +478,10 @@
               );
               
               if (location == "US, CA"){
+                // mortgage interest deduction
                 incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
+                // property tax deduction
+                incomeDeductable += Math.min(propertyTaxPerMonth*12, 10000);
               }
               latestPrincipal -= result.totalPrincipal;
               latestInterest += result.totalInterest;
