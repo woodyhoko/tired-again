@@ -381,7 +381,6 @@
             if (location == "US, CA"){
               incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
             }
-            }
             latestPrincipal -= result.totalPrincipal;
             latestInterest += result.totalInterest;
           }
@@ -406,7 +405,7 @@
           if (retire) {
             monthlyEarn =
               (currentMoney * investmentReturnRate -
-                calculateTax(currentMoney * investmentReturnRate, location)) /
+                calculateTax(currentMoney * investmentReturnRate -incomeDeductable, location)) /
               12;
             totalSavings.push(
               currentMoney + (monthlyEarn - spendingMonthly) * 12
@@ -434,13 +433,18 @@
             let spendingMonthly =
               monthlyExpenses *
               Math.pow(1 + inflationRate, totalSavingsForceRetire.length - 1);
-            let monthlyEarn =
-              (currentAnnualIncome +
-                currentMoney * investmentReturnRate -
-                calculateTax(
-                  currentAnnualIncome + currentMoney * investmentReturnRate, location
-                )) /
-              12;
+            let incomeDeductable = 0;
+            switch(location){
+                case "US, CA":
+                  incomeDeductable += 14600;
+                  break;
+                case "Taiwan":
+                  incomeDeductable += 207000+92000+124000;
+                  break;
+                case "China":
+                  incomeDeductable += 60000;
+                  break;
+            }
             if (!houseOwned) {
               if (currentMoney >= downPaymentAmount) {
                 houseOwned = true;
@@ -470,33 +474,30 @@
                 latestPrincipal
               );
               
-              let incomeDeductable;
               if (location == "US, CA"){
-                incomeDeductable = Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
-              }else{
-                incomeDeductable = 0;
+                incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
               }
-              monthlyEarn =
-                (currentAnnualIncome +
-                  currentMoney * investmentReturnRate -
-                  calculateTax(
-                    currentAnnualIncome +
-                      currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
-              latestPrincipal -= result.totalPrincipal;
-              latestInterest += result.totalInterest;
             }
-  
+            
             if (
-              !retire && forceRetireAge-currentAge < totalSavingsForceRetire.length
+            !retire && forceRetireAge-currentAge < totalSavingsForceRetire.length
             ) {
               retire = true;
               retireAge2 = totalSavingsForceRetire.length + currentAge - 1;
             }
-  
+            monthlyEarn =
+              (currentAnnualIncome +
+                currentMoney * investmentReturnRate -
+                calculateTax(
+                  currentAnnualIncome +
+                    currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
+            latestPrincipal -= result.totalPrincipal;
+            latestInterest += result.totalInterest;
+              
             if (retire) {
               monthlyEarn =
                 (currentMoney * investmentReturnRate -
-                  calculateTax(currentMoney * investmentReturnRate, location)) /
+                  calculateTax(currentMoney * investmentReturnRate -incomeDeductable, location)) /
                 12;
               totalSavingsForceRetire.push(
                 currentMoney + (monthlyEarn - spendingMonthly) * 12
@@ -521,11 +522,24 @@
               Math.pow(1 + inflationRate, totalSavingsNoHome.length - 1) +
             monthlyRent *
               Math.pow(1 + inflationRate, totalSavingsNoHome.length - 1);
-          let monthlyEarn =
+          
+          let incomeDeductable = 0;
+          switch(location){
+              case "US, CA":
+                incomeDeductable += 14600;
+                break;
+              case "Taiwan":
+                incomeDeductable += 207000+92000+124000;
+                break;
+              case "China":
+                incomeDeductable += 60000;
+                break;
+          }
+              let monthlyEarn =
             (currentAnnualIncome +
               currentMoney * investmentReturnRate -
               calculateTax(
-                currentAnnualIncome + currentMoney * investmentReturnRate, location
+                currentAnnualIncome + currentMoney * investmentReturnRate - incomeDeductable, location
               )) /
             12;
 
@@ -542,7 +556,7 @@
           if (retireNoHome) {
             monthlyEarn =
               (currentMoney * investmentReturnRate -
-                calculateTax(currentMoney * investmentReturnRate, location)) /
+                calculateTax(currentMoney * investmentReturnRate - incomeDeductable, location)) /
               12;
             totalSavingsNoHome.push(
               currentMoney + (monthlyEarn - spendingMonthly) * 12
@@ -564,15 +578,27 @@
           for (let age = currentAge; age++ < 100; ) {
             let currentMoney = totalSavingsNoHomeForceRetire.at(-1);
             let spendingMonthly =
-              monthlyExpenses *
-                Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1) +
-              monthlyRent *
-                Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1);
+            monthlyExpenses *
+            Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1) +
+            monthlyRent *
+            Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1);
+            let incomeDeductable = 0;
+            switch(location){
+                case "US, CA":
+                  incomeDeductable += 14600;
+                  break;
+                case "Taiwan":
+                  incomeDeductable += 207000+92000+124000;
+                  break;
+                case "China":
+                  incomeDeductable += 60000;
+                  break;
+            }
             let monthlyEarn =
               (currentAnnualIncome +
                 currentMoney * investmentReturnRate -
                 calculateTax(
-                  currentAnnualIncome + currentMoney * investmentReturnRate, location
+                  currentAnnualIncome + currentMoney * investmentReturnRate - incomeDeductable, location
                 )) /
               12;
   
@@ -586,7 +612,7 @@
             if (retireNoHome) {
               monthlyEarn =
                 (currentMoney * investmentReturnRate -
-                  calculateTax(currentMoney * investmentReturnRate, location)) /
+                  calculateTax(currentMoney * investmentReturnRate - incomeDeductable, location)) /
                 12;
               totalSavingsNoHomeForceRetire.push(
                 currentMoney + (monthlyEarn - spendingMonthly) * 12
