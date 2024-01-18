@@ -337,13 +337,18 @@
           let spendingMonthly =
             monthlyExpenses *
             Math.pow(1 + inflationRate, totalSavings.length - 1);
-          let monthlyEarn =
-            (currentAnnualIncome +
-              currentMoney * investmentReturnRate -
-              calculateTax(
-                currentAnnualIncome + currentMoney * investmentReturnRate, location
-              )) /
-            12;
+          let incomeDeductable = 0;
+          switch(location){
+              case "US, CA":
+                incomeDeductable += 14600;
+                break;
+              case "Taiwan":
+                incomeDeductable += 207000+92000+124000;
+                break;
+              case "China":
+                incomeDeductable += 60000;
+                break;
+          }
           if (!houseOwned) {
             if (currentMoney >= downPaymentAmount) {
               houseOwned = true;
@@ -373,21 +378,20 @@
               latestPrincipal
             );
             
-            let incomeDeductable;
             if (location == "US, CA"){
-              incomeDeductable = Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
-            }else{
-              incomeDeductable = 0;
+              incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
             }
-            monthlyEarn =
-              (currentAnnualIncome +
-                currentMoney * investmentReturnRate -
-                calculateTax(
-                  currentAnnualIncome +
-                    currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
+            }
             latestPrincipal -= result.totalPrincipal;
             latestInterest += result.totalInterest;
           }
+          
+          monthlyEarn =
+            (currentAnnualIncome +
+              currentMoney * investmentReturnRate -
+              calculateTax(
+                currentAnnualIncome +
+                  currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
 
           if (
             !retire && houseOwned &&
