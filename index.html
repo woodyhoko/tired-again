@@ -477,6 +477,8 @@
               if (location == "US, CA"){
                 incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
               }
+              latestPrincipal -= result.totalPrincipal;
+              latestInterest += result.totalInterest;
             }
             
             if (
@@ -491,8 +493,7 @@
                 calculateTax(
                   currentAnnualIncome +
                     currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
-            latestPrincipal -= result.totalPrincipal;
-            latestInterest += result.totalInterest;
+            
               
             if (retire) {
               monthlyEarn =
