@@ -333,12 +333,6 @@
         let retireAge = 0;
         let currentAnnualIncome = annualIncome;
         for (let age = currentAge; age++ < 100; ) {
-          let monthlyEarn =
-            (currentAnnualIncome +
-              currentMoney * investmentReturnRate -
-              calculateTax(
-                currentAnnualIncome +
-                  currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
           let currentMoney = totalSavings.at(-1);
           let spendingMonthly =
             monthlyExpenses *
@@ -355,6 +349,12 @@
                 incomeDeductable += 60000;
                 break;
           }
+          let monthlyEarn =
+            (currentAnnualIncome +
+              currentMoney * investmentReturnRate -
+              calculateTax(
+                currentAnnualIncome +
+                  currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
           if (!houseOwned) {
             if (currentMoney >= downPaymentAmount &&
             (monthlyEarn * 0.93 >
@@ -435,12 +435,6 @@
           retireAge2 = 0;
           currentAnnualIncome = annualIncome;
           for (let age = currentAge; age++ < 100; ) {
-            let monthlyEarn =
-              (currentAnnualIncome +
-                currentMoney * investmentReturnRate -
-                calculateTax(
-                  currentAnnualIncome +
-                    currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
             let currentMoney = totalSavingsForceRetire.at(-1);
             let spendingMonthly =
               monthlyExpenses *
@@ -457,6 +451,12 @@
                   incomeDeductable += 60000;
                   break;
             }
+            let monthlyEarn =
+              (currentAnnualIncome +
+                currentMoney * investmentReturnRate -
+                calculateTax(
+                  currentAnnualIncome +
+                    currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
             if (!houseOwned) {
               if (currentMoney >= downPaymentAmount &&
               (monthlyEarn * 0.93 >
