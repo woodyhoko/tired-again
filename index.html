@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Retirement Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f2f2;
+        color: #333;
+      }
+      .container {
+        width: 90%;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .container > div {
+        flex-basis: 25%;
+      }
+      #savingsChartContainer {
+        flex-basis: 70%;
+        display: flex;
+        align-items: center;
+        margin-left: 50px;
+      }
+      @media (max-width: 768px) {
+        .container > div,
+        #savingsChartContainer {
+          flex-basis: 100%;
+          margin-left: 0;
+        }
+      }
+      label,
+      input,
+      button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      button {
+        width: auto;
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+
+      label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px; /* Adjusted font size */
+            font-family: Arial, sans-serif; /* Adjusted font family */
+            color: #333; /* Adjusted font color */
+            font-weight: bold; /* Making labels bold */
+        }
+
+        select,input[type="number"] {
+        border: 2px solid #dcdcdc;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 16px;
+        font-family: Arial, sans-serif; /* Adjusted font family */
+        color: #333;
+        background-color: #f9f9f9;
+        transition: border-color 0.3s, box-shadow 0.3s;
+        width:90%;
+        }
+
+        select,input[type="number"]:focus {
+            border-color: #a0a0a0;
+            box-shadow: 0 0 5px rgba(160, 160, 160, 0.5);
+            outline: none;
+        }
+
+        select,input[type="number"]:hover {
+            border-color: #a0a0a0;
+        }
+
+        input[type="number"]::placeholder {
+            color: #aaa;
+            opacity: 1;
+        }
+        select,label {
+            font-size: 16px; /* Adjusted font size */
+            font-family: Arial, sans-serif; /* Adjusted font family */
+        }
+        select{
+          margin-bottom: 5px;
+        }
+    </style>
+    <script>
+      var forceShow = false;
+      function calculateTax(annualIncome, location) {
+        var tax = 0;
+        let remainingIncome;
+        switch(location){
+          case "US, CA":
+            // Simplified U.S. federal tax brackets for single filers as of 2023
+            const  federalTaxBrackets  = [
+              { limit: 0, rate: 0},
+              { limit: 10275, rate: 0.1 },
+              { limit: 44725, rate: 0.12 },
+              { limit: 95375, rate: 0.22 },
+              { limit: 182100, rate: 0.24 },
+              { limit: 231250, rate: 0.32 },
+              { limit: 578125, rate: 0.35 },
+              { limit: Infinity, rate: 0.37 },
+            ];
+            
+            remainingIncome = annualIncome;
+    
+            for (var i = 1; i < federalTaxBrackets .length; i++) {
+              var bracket = federalTaxBrackets[i];
+              var incomeInBracket = Math.min(remainingIncome, bracket.limit-federalTaxBrackets[i-1].limit);
+              tax += incomeInBracket * bracket.rate;
+              remainingIncome -= incomeInBracket;
+    
+              if (remainingIncome <= 0) {
+                break;
+              }
+            }
+            // California tax as of 2024:
+            const californiaTaxBrackets = [
+              { limit: 0, rate: 0},
+              { limit: 9325, rate: 0.01 },
+              { limit: 22107, rate: 0.02 },
+              { limit: 34892, rate: 0.04 },
+              { limit: 48012, rate: 0.06 },
+              { limit: 63803, rate: 0.08 },
+              { limit: 87589, rate: 0.093 },
+              { limit: 125778, rate: 0.103 },
+              { limit: 251555, rate: 0.113 },
+              { limit: 639875, rate: 0.123 },
+              { limit: Infinity, rate: 0.133 }, // Represents the highest tax bracket
+            ];
+
+            remainingIncome = annualIncome;
+    
+            for (var i = 1; i < californiaTaxBrackets .length; i++) {
+              var bracket = californiaTaxBrackets[i];
+              var incomeInBracket = Math.min(remainingIncome, bracket.limit-californiaTaxBrackets[i-1].limit);
+              tax += incomeInBracket * bracket.rate;
+              remainingIncome -= incomeInBracket;
+    
+              if (remainingIncome <= 0) {
+                break;
+              }
+            }
+
+            break;
+          case "Taiwan":
+            const taiwanTaxBrackets = [
+              { limit: 0, rate: 0},
+              { limit: 560000, rate: 0.05 }, // Flat rate for income below 560,000 NTD
+              { limit: 1260000, rate: 0.12 }, // 560,001 to 1,260,000 NTD
+              { limit: 2520000, rate: 0.20 }, // 1,260,001 to 2,520,000 NTD
+              { limit: 4720000, rate: 0.30 }, // 2,520,001 to 4,720,000 NTD
+              { limit: Infinity, rate: 0.40 }, // Over 4,720,000 NTD
+            ];
+            remainingIncome = annualIncome;
+    
+            for (var i = 1; i < taiwanTaxBrackets .length; i++) {
+              var bracket = taiwanTaxBrackets[i];
+              var incomeInBracket = Math.min(remainingIncome, bracket.limit-taiwanTaxBrackets[i-1].limit);
+              tax += incomeInBracket * bracket.rate;
+              remainingIncome -= incomeInBracket;
+    
+              if (remainingIncome <= 0) {
+                break;
+              }
+            }
+            break;
+          case "China":
+          const chinaTaxBrackets = [
+            { limit: 0, rate: 0},
+            { limit: 36000, rate: 0.03 },
+            { limit: 144000, rate: 0.1 },
+            { limit: 300000, rate: 0.2 },
+            { limit: 420000, rate: 0.25 },
+            { limit: 660000, rate: 0.3 },
+            { limit: 960000, rate: 0.35 },
+            { limit: Infinity, rate: 0.45 }
+          ];
+          remainingIncome = annualIncome;
+    
+            for (var i = 1; i < chinaTaxBrackets .length; i++) {
+              var bracket = chinaTaxBrackets[i];
+              var incomeInBracket = Math.min(remainingIncome, bracket.limit-chinaTaxBrackets[i-1].limit);
+              tax += incomeInBracket * bracket.rate;
+              remainingIncome -= incomeInBracket;
+    
+              if (remainingIncome <= 0) {
+                break;
+              }
+            }
+            break;
+        }
+
+        return tax;
+      }
+
+      function calculateMonthlyPayment(
+        principal,
+        annualInterestRate,
+        loanYears
+      ) {
+        const monthlyInterestRate = annualInterestRate / 12 / 100;
+        const totalPayments = loanYears * 12;
+        return (
+          (principal * monthlyInterestRate) /
+          (1 - Math.pow(1 + monthlyInterestRate, -totalPayments))
+        );
+      }
+
+      function calculateYearlyAmortization(
+        principal,
+        annualInterestRate,
+        loanYears,
+        lastPrincipal,
+        paymentsMade
+      ) {
+        const monthlyPayment = calculateMonthlyPayment(
+          principal,
+          annualInterestRate,
+          loanYears
+        );
+        let totalInterest = 0;
+        let totalPrincipal = 0;
+        let currentBalance = lastPrincipal;
+
+        for (let month = 1; month <= 12; month++) {
+          if (paymentsMade >= loanYears * 12) break;
+          const monthlyInterest =
+            currentBalance * (annualInterestRate / 12 / 100);
+          const principalPaid = monthlyPayment - monthlyInterest;
+
+          totalInterest += monthlyInterest;
+          totalPrincipal += principalPaid;
+          currentBalance -= principalPaid;
+          paymentsMade++;
+        }
+
+        return { totalInterest, totalPrincipal };
+      }
+
+      function calculateRetirement() {
+        // Inputs
+        var location = document.getElementById("location").value;
+        var currentAge = parseInt(document.getElementById("currentAge").value);
+        var currentSavings = parseInt(
+          document.getElementById("currentSavings").value
+        );
+        var annualIncome = parseFloat(
+          document.getElementById("annualIncome").value
+        );
+        var monthlyExpenses = parseFloat(
+          document.getElementById("monthlyExpenses").value
+        );
+        var monthlyRent = parseFloat(
+          document.getElementById("monthlyRent").value
+        );
+        var housePrice = parseFloat(
+          document.getElementById("housePrice").value
+        );
+        var downPaymentPercentage =
+          parseFloat(document.getElementById("downPaymentPercentage").value) /
+          100;
+        var mortgageInterestRate =
+          parseFloat(document.getElementById("mortgageInterestRate").value) /
+          100;
+        var mortgageTerm = parseInt(
+          document.getElementById("mortgageTerm").value
+        );
+        var investmentReturnRate =
+          parseFloat(document.getElementById("investmentReturnRate").value) /
+          100;
+        var inflationRate =
+          parseFloat(document.getElementById("inflationRate").value) / 100; // Tax calculation
+        var yearlyIncomeIncrease =
+        parseFloat(document.getElementById("yearlyIncomeIncrease").value) / 100; // Tax calculation
+        var forceRetireAge =
+          parseInt(document.getElementById("forceRetireAge").value); // Tax calculation
+        forceShow = forceRetireAge == forceRetireAge;
+        var annualTax = calculateTax(annualIncome, location);
+        var monthlyIncomeAfterTax = (annualIncome - annualTax) / 12;
+
+        // More calculations
+        var monthlySavings = monthlyIncomeAfterTax - monthlyExpenses;
+        var downPaymentAmount = housePrice * downPaymentPercentage;
+        var loanAmount = housePrice - downPaymentAmount;
+        var monthlyMortgagePayment =
+          ((mortgageInterestRate / 12) * loanAmount) /
+          (1 - Math.pow(1 + mortgageInterestRate / 12, -mortgageTerm * 12));
+        var monthsToSaveForDownPayment = downPaymentAmount / monthlySavings;
+        var futureMonthlyExpenses =
+          monthlyExpenses * Math.pow(1 + inflationRate, mortgageTerm);
+        var monthlyRetirementExpenses =
+          futureMonthlyExpenses + monthlyMortgagePayment;
+        var desiredRetirementFund = (monthlyRetirementExpenses * 12) / 0.04;
+        var monthlyInvestmentReturnRate =
+          Math.pow(1 + investmentReturnRate, 1 / 12) - 1;
+        var totalMonthsToRetirement =
+          monthsToSaveForDownPayment +
+          Math.log(
+            (desiredRetirementFund * monthlyInvestmentReturnRate) /
+              monthlySavings +
+              1
+          ) /
+            Math.log(1 + monthlyInvestmentReturnRate);
+        var retirementAge = currentAge + totalMonthsToRetirement / 12;
+
+        let latestInterest = 0;
+        let latestPrincipal = loanAmount;
+        let totalSavings = [currentSavings];
+        let houseOwned = false;
+        let houseOwnedAge = 0;
+        let retire = false;
+        let retireAge = 0;
+        let currentAnnualIncome = annualIncome;
+        for (let age = currentAge; age++ < 100; ) {
+          let currentMoney = totalSavings.at(-1);
+          let spendingMonthly =
+            monthlyExpenses *
+            Math.pow(1 + inflationRate, totalSavings.length - 1);
+          let incomeDeductable = 0;
+          switch(location){
+              case "US, CA":
+                incomeDeductable += 14600;
+                break;
+              case "Taiwan":
+                incomeDeductable += 207000+92000+124000;
+                break;
+              case "China":
+                incomeDeductable += 60000;
+                break;
+          }
+          let monthlyEarn =
+            (currentAnnualIncome +
+              currentMoney * investmentReturnRate -
+              calculateTax(
+                currentAnnualIncome +
+                  currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
+          if (!houseOwned) {
+            if (currentMoney >= downPaymentAmount &&
+            (monthlyEarn * 0.93 >
+              (spendingMonthly + monthlyMortgagePayment))) {
+              houseOwned = true;
+              currentMoney -= downPaymentAmount;
+              houseOwnedAge = totalSavings.length + currentAge - 1;
+            } else {
+              spendingMonthly +=
+                monthlyRent *
+                Math.pow(1 + inflationRate, totalSavings.length - 1);
+            }
+          } 
+          if (houseOwned) {
+            if (totalSavings.length - (houseOwnedAge - currentAge) -1 < mortgageTerm) {
+              spendingMonthly += monthlyMortgagePayment;
+            }
+            // property tax.
+            let propertyTaxPerMonth;
+            if (location == "US, CA"){
+              propertyTaxPerMonth = housePrice * 0.01 / 12;
+            }else{
+              propertyTaxPerMonth = 0;
+            }
+            spendingMonthly += propertyTaxPerMonth;
+            let result = calculateYearlyAmortization(
+              loanAmount,
+              mortgageInterestRate,
+              30,
+              latestPrincipal
+            );
+            
+            if (location == "US, CA"){
+              // mortgage interest deduction
+              incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
+              // property tax deduction
+              incomeDeductable += Math.min(propertyTaxPerMonth*12, 10000);
+            }
+            latestPrincipal -= result.totalPrincipal;
+            latestInterest += result.totalInterest;
+          }
+          
+
+          if (
+            !retire && houseOwned &&
+            (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate, location))*0.85 >
+              spendingMonthly * 12
+          ) {
+            retire = true;
+            retireAge = totalSavings.length + currentAge - 1;
+          }
+
+          if (retire) {
+            monthlyEarn =
+              (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate -incomeDeductable, location)) /
+              12;
+            totalSavings.push(
+              currentMoney + (monthlyEarn - spendingMonthly) * 12
+            );
+          } else {
+            totalSavings.push(
+              currentMoney + (monthlyEarn - spendingMonthly) * 12
+            );
+          }
+          currentAnnualIncome*= 1+yearlyIncomeIncrease;
+        }
+
+        let totalSavingsForceRetire = [];
+        if (forceRetireAge == forceRetireAge){
+          latestInterest = 0;
+          latestPrincipal = loanAmount;
+          totalSavingsForceRetire = [currentSavings];
+          houseOwned = false;
+          houseOwnedAge = 0;
+          retire = false;
+          retireAge2 = 0;
+          currentAnnualIncome = annualIncome;
+          for (let age = currentAge; age++ < 100; ) {
+            let currentMoney = totalSavingsForceRetire.at(-1);
+            let spendingMonthly =
+              monthlyExpenses *
+              Math.pow(1 + inflationRate, totalSavingsForceRetire.length - 1);
+            let incomeDeductable = 0;
+            switch(location){
+                case "US, CA":
+                  incomeDeductable += 14600;
+                  break;
+                case "Taiwan":
+                  incomeDeductable += 207000+92000+124000;
+                  break;
+                case "China":
+                  incomeDeductable += 60000;
+                  break;
+            }
+            let monthlyEarn =
+              (currentAnnualIncome +
+                currentMoney * investmentReturnRate -
+                calculateTax(
+                  currentAnnualIncome +
+                    currentMoney * investmentReturnRate -incomeDeductable, location)) / 12;
+            if (!houseOwned) {
+              if (currentMoney >= downPaymentAmount &&
+              (monthlyEarn * 0.93 >
+                (spendingMonthly + monthlyMortgagePayment))) {
+                houseOwned = true;
+                currentMoney -= downPaymentAmount;
+                houseOwnedAge = totalSavings.length + currentAge - 1;
+              } else {
+                spendingMonthly +=
+                  monthlyRent *
+                  Math.pow(1 + inflationRate, totalSavingsForceRetire.length - 1);
+              }
+            }
+            if (houseOwned) {
+              if (totalSavingsForceRetire.length - (houseOwnedAge - currentAge) -1 < mortgageTerm) {
+                spendingMonthly += monthlyMortgagePayment;
+              }
+              // property tax.
+              let propertyTaxPerMonth;
+              if (location == "US, CA"){
+                propertyTaxPerMonth = housePrice * 0.01 / 12;
+              }else{
+                propertyTaxPerMonth = 0;
+              }
+              spendingMonthly += propertyTaxPerMonth;
+              let result = calculateYearlyAmortization(
+                loanAmount,
+                mortgageInterestRate,
+                30,
+                latestPrincipal
+              );
+              
+              if (location == "US, CA"){
+                // mortgage interest deduction
+                incomeDeductable += Math.max(0, (Math.min(latestInterest + result.totalInterest, 750000) - latestInterest));
+                // property tax deduction
+                incomeDeductable += Math.min(propertyTaxPerMonth*12, 10000);
+              }
+              latestPrincipal -= result.totalPrincipal;
+              latestInterest += result.totalInterest;
+            }
+            
+            if (
+            !retire && forceRetireAge-currentAge < totalSavingsForceRetire.length
+            ) {
+              retire = true;
+              retireAge2 = totalSavingsForceRetire.length + currentAge - 1;
+            }
+            
+              
+            if (retire) {
+              monthlyEarn =
+                (currentMoney * investmentReturnRate -
+                  calculateTax(currentMoney * investmentReturnRate -incomeDeductable, location)) /
+                12;
+              totalSavingsForceRetire.push(
+                currentMoney + (monthlyEarn - spendingMonthly) * 12
+              );
+            } else {
+              totalSavingsForceRetire.push(
+                currentMoney + (monthlyEarn - spendingMonthly) * 12
+              );
+            }
+            currentAnnualIncome *= 1+yearlyIncomeIncrease;
+          }
+        }
+
+        let retireNoHome = false;
+        let retireAgeNoHome = 0;
+        let totalSavingsNoHome = [currentSavings];
+        currentAnnualIncome = annualIncome;
+        for (let age = currentAge; age++ < 100; ) {
+          let currentMoney = totalSavingsNoHome.at(-1);
+          let spendingMonthly =
+            monthlyExpenses *
+              Math.pow(1 + inflationRate, totalSavingsNoHome.length - 1) +
+            monthlyRent *
+              Math.pow(1 + inflationRate, totalSavingsNoHome.length - 1);
+          
+          let incomeDeductable = 0;
+          switch(location){
+              case "US, CA":
+                incomeDeductable += 14600;
+                break;
+              case "Taiwan":
+                incomeDeductable += 207000+92000+124000;
+                break;
+              case "China":
+                incomeDeductable += 60000;
+                break;
+          }
+              let monthlyEarn =
+            (currentAnnualIncome +
+              currentMoney * investmentReturnRate -
+              calculateTax(
+                currentAnnualIncome + currentMoney * investmentReturnRate - incomeDeductable, location
+              )) /
+            12;
+
+          if (
+            !retireNoHome &&
+            (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate, location))*0.85 >
+              spendingMonthly * 12
+          ) {
+            retireNoHome = true;
+            retireAgeNoHome = totalSavingsNoHome.length + currentAge - 1;
+          }
+
+          if (retireNoHome) {
+            monthlyEarn =
+              (currentMoney * investmentReturnRate -
+                calculateTax(currentMoney * investmentReturnRate - incomeDeductable, location)) /
+              12;
+            totalSavingsNoHome.push(
+              currentMoney + (monthlyEarn - spendingMonthly) * 12
+            );
+          } else {
+            totalSavingsNoHome.push(
+              currentMoney + (monthlyEarn - spendingMonthly) * 12
+            );
+          }
+          currentAnnualIncome *= 1+yearlyIncomeIncrease;
+        }
+        
+        let totalSavingsNoHomeForceRetire;
+        if (forceRetireAge == forceRetireAge){
+          retireNoHome = false;
+          retireAgeNoHome2 = 0;
+          totalSavingsNoHomeForceRetire = [currentSavings];
+          currentAnnualIncome = annualIncome;
+          for (let age = currentAge; age++ < 100; ) {
+            let currentMoney = totalSavingsNoHomeForceRetire.at(-1);
+            let spendingMonthly =
+            monthlyExpenses *
+            Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1) +
+            monthlyRent *
+            Math.pow(1 + inflationRate, totalSavingsNoHomeForceRetire.length - 1);
+            let incomeDeductable = 0;
+            switch(location){
+                case "US, CA":
+                  incomeDeductable += 14600;
+                  break;
+                case "Taiwan":
+                  incomeDeductable += 207000+92000+124000;
+                  break;
+                case "China":
+                  incomeDeductable += 60000;
+                  break;
+            }
+            let monthlyEarn =
+              (currentAnnualIncome +
+                currentMoney * investmentReturnRate -
+                calculateTax(
+                  currentAnnualIncome + currentMoney * investmentReturnRate - incomeDeductable, location
+                )) /
+              12;
+  
+            if (
+              !retireNoHome && forceRetireAge-currentAge < totalSavingsNoHomeForceRetire.length
+            ) {
+              retireNoHome = true;
+              retireAgeNoHome2 = totalSavingsNoHomeForceRetire.length + currentAge - 1;
+            }
+  
+            if (retireNoHome) {
+              monthlyEarn =
+                (currentMoney * investmentReturnRate -
+                  calculateTax(currentMoney * investmentReturnRate - incomeDeductable, location)) /
+                12;
+              totalSavingsNoHomeForceRetire.push(
+                currentMoney + (monthlyEarn - spendingMonthly) * 12
+              );
+            } else {
+              totalSavingsNoHomeForceRetire.push(
+                currentMoney + (monthlyEarn - spendingMonthly) * 12
+              );
+            }
+            currentAnnualIncome *= 1+yearlyIncomeIncrease;
+          }
+        }
+
+        // Output
+        document.getElementById("HouseAge").innerText = "Estimated house owned at age:\t" +
+          houseOwnedAge +
+          " years old.";
+          document.getElementById("retirementAgeWithHouse").innerText = "Estimated retire with house at age:\t" +
+          retireAge +
+          " years old.";
+          document.getElementById("retirementAgeWithoutHouse").innerText = "Estimated retire without house at age:\t" +
+          retireAgeNoHome +
+          " years old.";
+        //   retirementAge.toFixed(2)
+
+        //   document.getElementById("retirementAge").innerText =
+        //   "Estimated Retirement Age:\t" +
+        //   retirementAge.toFixed(2) +
+        //   " years old.\n" +
+        //   "Estimated house owned at age:\t" +
+        //   houseOwnedAge +
+        //   " years old.\n" +
+        //   "Estimated retire with house at age:\t" +
+        //   retireAge +
+        //   " years old.\n" +
+        //   "Estimated retire without house at age:\t" +
+        //   retireAgeNoHome +
+        //   " years old.";
+
+        updateChart(savingsChart, totalSavings, totalSavingsNoHome, totalSavingsForceRetire, totalSavingsNoHomeForceRetire, currentAge);
+
+        // updateChart(
+        // 	savingsChart,
+        // 	currentAge,
+        // 	monthlySavings,
+        // 	retirementAge,
+        // 	monthlyInvestmentReturnRate
+        // );
+      }
+
+      // Function to update the chart
+      function updateChart(
+        chart,
+        totalSavings,
+        totalSavingsNoHome,
+        totalSavingsForceRetire,
+        totalSavingsNoHomeForceRetire,
+        currentAge
+      ) {
+        var labels = [];
+        // var data = [];
+        // var dataNoHome = [];
+        for (let i = 0; i++ < totalSavings.length; ) {
+          labels.push(i + currentAge - 1);
+          // data.push(totalSavings[i]);
+        }
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = totalSavings;
+        chart.data.datasets[1].data = totalSavingsNoHome;
+        chart.data.datasets[2].data = totalSavingsForceRetire;
+        chart.data.datasets[3].data = totalSavingsNoHomeForceRetire;
+        chart.update();
+      }
+
+      // Function to create the chart
+      function createChart() {
+        var ctx = document.getElementById("savingsChart").getContext("2d");
+        return new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Total Savings With Home",
+                data: [],
+                borderColor: "rgb(75, 192, 192)",
+                tension: 0.08,
+              },
+              {
+                label: "Total Savings Without Home",
+                data: [],
+                borderColor: "rgb(52, 186, 235)",
+                tension: 0.08,
+              },
+              {
+                label: "Total Savings With Home Force Retire Age",
+                data: [],
+                borderColor: "rgb(72, 140, 140)",
+                tension: 0.08,
+              },
+              {
+                label: "Total Savings Without Home Force Retire Age",
+                data: [],
+                borderColor: "rgb(39, 121, 150)",
+                tension: 0.08,
+              },
+            ],
+          },
+          options: {
+            plugins:{
+              legend: {
+                labels: {
+                  filter: function(item) {
+                    // Logic to remove a particular legend item goes here
+                    if (forceShow){
+                      return true;
+                    }
+                    return !item.text.includes('Force Retire Age');
+                  }
+                }
+              }
+            }
+          },
+        });
+      }
+
+      // Create the chart when the page loads
+      var savingsChart;
+      window.onload = function () {
+        savingsChart = createChart();
+        calculateRetirement();
+      };
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <h1>Re-Tired, aka Tired-again</h1>
+        <div>
+          <label for="location">Location:</label>
+          <select
+          id="location"
+          oninput="calculateRetirement()"
+          value="US, CA"
+          required>
+            <option value="US, CA">US, CA</option>
+            <option value="Taiwan">Taiwan</option>
+            <option value="China">China</option>
+          </select>
+        </div>
+        <div>
+            <label for="currentAge">Current Age:</label>
+            <input
+            type="number"
+            id="currentAge"
+            oninput="calculateRetirement()"
+            value="26"
+            required
+            />
+        </div>
+        <div>
+            <label for="currentSavings">Current Savings:</label>
+            <input
+            type="number"
+            id="currentSavings"
+            oninput="calculateRetirement()"
+            value="0"
+            required
+            />
+        </div>
+        <div>
+            <label for="annualIncome">Annual Income (Before Tax):</label>
+            <input
+            type="number"
+            id="annualIncome"
+            oninput="calculateRetirement()"
+            value="150000"
+            required
+            />
+        </div>
+        <div>
+            <label for="monthlyExpenses">Monthly Expenses:</label>
+            <input
+            type="number"
+            id="monthlyExpenses"
+            oninput="calculateRetirement()"
+            value="1100"
+            required
+            />
+        </div>
+        <div>
+            <label for="monthlyRent">Monthly Rent:</label>
+            <input
+            type="number"
+            id="monthlyRent"
+            oninput="calculateRetirement()"
+            value="1300"
+            required
+            />
+        </div>
+        <div>
+            <label for="housePrice">Price of House:</label>
+            <input
+            type="number"
+            id="housePrice"
+            oninput="calculateRetirement()"
+            value="1200000"
+            required
+            />
+        </div>
+        <div>
+            <label for="downPaymentPercentage">Down Payment Percentage:</label>
+            <input
+            type="number"
+            id="downPaymentPercentage"
+            oninput="calculateRetirement()"
+            value="20"
+            required
+            />
+        </div>
+        <div>
+            <label for="mortgageInterestRate">Mortgage Interest Rate (%):</label>
+            <input
+            type="number"
+            id="mortgageInterestRate"
+            oninput="calculateRetirement()"
+            value="4"
+            required
+            />
+        </div>
+        <div>
+            <label for="mortgageTerm">Mortgage Term (Years):</label>
+            <input
+            type="number"
+            id="mortgageTerm"
+            oninput="calculateRetirement()"
+            value="30"
+            required
+            />
+        </div>
+        <div>
+            <label for="investmentReturnRate"
+            >Expected Investment Return Rate (%):</label
+            >
+            <input
+            type="number"
+            id="investmentReturnRate"
+            oninput="calculateRetirement()"
+            value="5"
+            required
+            />
+        </div>
+        <div>
+            <label for="inflationRate">Inflation Rate (%):</label>
+            <input
+            type="number"
+            id="inflationRate"
+            oninput="calculateRetirement()"
+            value="2"
+            required
+            />
+        </div>
+        <div>
+          <label for="yearlyIncomeIncrease">Annual Pay Raise Rate:</label>
+            <input
+            type="number"
+            id="yearlyIncomeIncrease"
+            oninput="calculateRetirement()"
+            value="3"
+            required
+            />
+        </div>
+        <div>
+          <label for="forceRetireAge">Adjusted Retire Age:</label>
+            <input
+            type="number"
+            id="forceRetireAge"
+            oninput="calculateRetirement()"
+            value=""
+            required
+            />
+        </div>
+        <div>
+            <!-- <button onclick="calculateRetirement()">Calculate Retirement Age</button> -->
+            <label id="HouseAge"></label>
+            <label id="retirementAgeWithHouse"></label>
+            <label id="retirementAgeWithoutHouse"></label>
+        </div>
+    </div>
+    <div id="savingsChartContainer">
+      <canvas id="savingsChart"></canvas>
+    </div>
+  </body>
+</html>
