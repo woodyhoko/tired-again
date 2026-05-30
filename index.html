@@ -95,17 +95,17 @@
                 <div class="toggle-row">
                     <label class="toggle-text" for="enableMC">Simulate market volatility<br><span style="font-size:0.72rem;color:var(--text-muted);font-weight:400;">Monte Carlo — 2,000 random paths</span></label>
                     <label class="switch">
-                        <input type="checkbox" id="enableMC">
+                        <input type="checkbox" id="enableMC" checked>
                         <span class="chk-slider"></span>
                     </label>
                 </div>
 
-                <div class="input-group span-2 mc-only disabled" id="volGroup">
+                <div class="input-group span-2 mc-only" id="volGroup">
                     <label class="label-flex" for="volatility">Annual Volatility (σ) <span class="range-value"><span id="volatilityVal">9.0</span>%</span></label>
                     <input type="range" id="volatility" min="0" max="35" step="0.5" value="9">
                 </div>
 
-                <div class="toggle-row mc-only disabled" id="pathsGroup">
+                <div class="toggle-row mc-only" id="pathsGroup">
                     <label class="toggle-text" for="showPaths">Overlay 60 sample paths</label>
                     <label class="switch">
                         <input type="checkbox" id="showPaths">

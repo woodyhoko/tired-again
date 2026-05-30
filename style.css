@@ -101,6 +101,9 @@ h1, h2, h3 {
 .controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    /* Bottom-align each cell so the input boxes line up across a row even when
+       one label wraps to two lines and its neighbour stays on one. */
+    align-items: end;
     gap: 0.9rem 1rem;
     margin-top: 1.75rem;
     overflow-y: auto;
