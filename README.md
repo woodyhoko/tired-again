@@ -66,6 +66,15 @@ yearReturn ~ N(expectedReturn, volatility)
 
 generated with a **Box–Muller transform**. The *growth* of the portfolio uses these random draws, while the *retirement decision* uses the stable expected return — so one lucky or unlucky year never flips the irreversible "I'm retired" latch.
 
+#### Why the volatility default is 9.0%
+
+The **Annual Volatility (σ)** slider defaults to **9.0%**, the same balanced-portfolio figure used in the companion [L-vs-Y pension simulator](https://github.com/woodyhoko/L-vs-Y). It models a classic **60% diversified stocks / 40% bonds (60/40)** allocation rather than a pure equity portfolio:
+
+- A pure S&P 500 history has a much higher standard deviation (~15.5%), which over-punishes the early-sequence-of-returns risk for a balanced saver.
+- Because ~40% of the portfolio sits in low-yield but stable assets (bonds, treasuries), the blended standard deviation is anchored down to roughly **9.0%** historically.
+
+This makes the spread bands reflect a realistic balanced retirement portfolio, while you can still drag σ up toward ~15% to stress-test an all-equity profile.
+
 For every age the 2,000 outcomes are sorted into percentiles:
 
 - The **median (50th)** is drawn as the solid line.
