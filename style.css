@@ -275,6 +275,7 @@ input[type=range]::-moz-range-thumb { height: 18px; width: 18px; border: none; b
 .badge { padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.72rem; }
 .strategy-a .badge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 .strategy-b .badge { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
+.badge.badge-warn { background: rgba(244, 63, 94, 0.16); color: #fb7185; }
 
 /* Chart containers */
 .chart-container { padding: 1.75rem; display: flex; flex-direction: column; }
