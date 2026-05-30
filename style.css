@@ -271,8 +271,23 @@ input[type=range]::-moz-range-thumb { height: 18px; width: 18px; border: none; b
 .stat-desc { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.6rem; }
 .stat-value { font-size: 2rem; font-weight: 700; font-family: var(--font-heading); letter-spacing: -1px; line-height: 1; }
 .stat-value .unit { font-size: 1rem; color: var(--text-muted); font-weight: 500; margin-left: 0.25rem; }
-.stat-sub { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; flex-wrap: wrap; }
-.badge { padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600; font-size: 0.72rem; }
+.stat-caption { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.35rem; }
+
+.stat-metric {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem;
+    margin-top: 0.75rem; padding-top: 0.7rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.metric-label { font-size: 0.74rem; color: var(--text-muted); font-weight: 500; }
+.metric-val {
+    font-size: 1.2rem; font-weight: 700; font-family: var(--font-heading);
+    color: var(--text-main); letter-spacing: -0.3px; line-height: 1;
+}
+.metric-val.neg { color: #fb7185; }
+
+.stat-sub { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.7rem; flex-wrap: wrap; min-height: 1.4rem; }
+.stat-sub:empty { display: none; }
+.badge { padding: 0.22rem 0.55rem; border-radius: 7px; font-weight: 600; font-size: 0.72rem; letter-spacing: 0.2px; white-space: nowrap; }
 .strategy-a .badge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 .strategy-b .badge { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
 .badge.badge-warn { background: rgba(244, 63, 94, 0.16); color: #fb7185; }

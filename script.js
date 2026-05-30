@@ -13,6 +13,7 @@
 const MC_PASSES = 2000;
 const SAMPLE_PATHS = 60;
 const END_AGE = 100;
+const NOW_YEAR = new Date().getFullYear();
 
 /* ---------- Tax models (unchanged brackets) ---------------------------- */
 
@@ -163,7 +164,8 @@ function runScenario(P, opts) {
 
   let latestInterest = 0;
   let latestPrincipal = P.loanAmount;
-  let savings = [P.currentSavings];
+  let savings = [P.currentSavings]; // liquid net worth (cash + investments)
+  let equity = [0];                 // home equity (house value − mortgage debt)
   let houseOwned = false;
   let houseOwnedAge = NaN;
   let retire = false;
@@ -244,11 +246,16 @@ function runScenario(P, opts) {
         (passiveIncome - calculateTax(passiveIncome - deduct, P.location)) / 12;
     }
     savings.push(currentMoney + (monthlyEarn - spendingMonthly) * 12);
+    // Home equity = house value minus the debt still outstanding on it.
+    const debtRemaining = houseOwned ? Math.max(0, latestPrincipal) : 0;
+    equity.push(houseOwned ? P.housePrice - debtRemaining : 0);
 
     currentAnnualIncome *= 1 + P.yearlyIncomeIncrease;
   }
 
-  return { savings, retireAge, houseOwnedAge };
+  // Total net worth folds home equity in on top of liquid assets.
+  const networth = savings.map((v, i) => v + equity[i]);
+  return { savings: networth, liquid: savings, retireAge, houseOwnedAge };
 }
 
 /* ---------- Parameter gathering ---------------------------------------- */
@@ -323,6 +330,7 @@ function monteCarlo(P, canBuyHome) {
   const byYear = Array.from({ length: years }, () => new Float64Array(MC_PASSES));
   const retireAges = [];
   let solventCount = 0;
+  let loseHouseCount = 0;
   const samples = [];
 
   for (let pass = 0; pass < MC_PASSES; pass++) {
@@ -336,6 +344,7 @@ function monteCarlo(P, canBuyHome) {
     for (let y = 0; y < years; y++) byYear[y][pass] = res.savings[y] || 0;
     if (!Number.isNaN(res.retireAge)) retireAges.push(res.retireAge);
     if (res.savings[evalIdx] > 0) solventCount++;
+    if (!Number.isNaN(loseHouseAge(res.liquid, P.currentAge, res.houseOwnedAge, evalIdx))) loseHouseCount++;
     if (pass < SAMPLE_PATHS) samples.push(res.savings);
   }
 
@@ -361,6 +370,7 @@ function monteCarlo(P, canBuyHome) {
     medianRetire,
     retireProbability: retireAges.length / MC_PASSES,
     survival: solventCount / MC_PASSES,
+    loseHouseProbability: loseHouseCount / MC_PASSES,
     samples,
   };
 }
@@ -445,7 +455,7 @@ function renderDeterministic(P) {
     updateStats(P, {
       evalAge, forced: true,
       homeRetire: homeF.retireAge, homeHouseAge: homeF.houseOwnedAge, homeEnd: homeF.savings[evalIdx],
-      homeLoseAge: loseHouseAge(homeF.savings, P.currentAge, homeF.houseOwnedAge, evalIdx),
+      homeLoseAge: loseHouseAge(homeF.liquid, P.currentAge, homeF.houseOwnedAge, evalIdx),
       noHomeRetire: noHomeF.retireAge, noHomeEnd: noHomeF.savings[evalIdx],
       noHomeInsolventAge: firstInsolventAge(noHomeF.savings, P.currentAge, evalIdx),
     });
@@ -453,7 +463,7 @@ function renderDeterministic(P) {
     updateStats(P, {
       evalAge,
       homeRetire: home.retireAge, homeHouseAge: home.houseOwnedAge, homeEnd: home.savings[evalIdx],
-      homeLoseAge: loseHouseAge(home.savings, P.currentAge, home.houseOwnedAge, evalIdx),
+      homeLoseAge: loseHouseAge(home.liquid, P.currentAge, home.houseOwnedAge, evalIdx),
       noHomeRetire: noHome.retireAge, noHomeEnd: noHome.savings[evalIdx],
     });
   }
@@ -463,7 +473,7 @@ function renderDeterministic(P) {
   document.getElementById("projSub").textContent =
     "Deterministic projection at a fixed " + (dr * 100).toFixed(1) + "% return" +
     (hasForce ? `, retiring at age ${P.forceRetireAge}` : "") +
-    ` · net worth measured at age ${evalAge}.`;
+    ` · net worth (incl. home equity) measured at age ${evalAge}.`;
 }
 
 function line(label, data, rgb, width, dashed = false, alpha = 1) {
@@ -506,7 +516,7 @@ async function renderMonteCarlo(P) {
   updateStats(P, {
     evalAge,
     homeRetire: home.medianRetire, homeHouseAge: NaN, homeEnd: home.bands[50][evalIdx],
-    homeLoseAge: loseHouseAge(home.bands[50], P.currentAge, P.currentAge, evalIdx),
+    homeLoseProb: home.loseHouseProbability,
     noHomeRetire: noHome.medianRetire, noHomeEnd: noHome.bands[50][evalIdx],
     homeSurvival: home.survival, noHomeSurvival: noHome.survival,
     homeRetireProb: home.retireProbability, noHomeRetireProb: noHome.retireProbability,
@@ -519,7 +529,7 @@ async function renderMonteCarlo(P) {
   document.getElementById("distTitle").textContent = "Outcome Spread at Age " + evalAge;
   const forceNote = Number.isNaN(P.forceRetireAge) ? "" : ` · retiring at age ${P.forceRetireAge}`;
   document.getElementById("projSub").textContent =
-    `${MC_PASSES.toLocaleString()} simulated market histories · ${(P.investmentReturnRate * 100).toFixed(1)}% mean, ${(P.volatility * 100).toFixed(1)}% volatility${forceNote}. Solvency & median measured at age ${evalAge}. Shaded band = 5th–95th percentile.`;
+    `${MC_PASSES.toLocaleString()} simulated market histories · ${(P.investmentReturnRate * 100).toFixed(1)}% mean, ${(P.volatility * 100).toFixed(1)}% volatility${forceNote}. Net worth incl. home equity; solvency & median measured at age ${evalAge}. Shaded band = 5th–95th percentile.`;
 }
 
 // Build the shaded percentile band (5–95, 25–75) plus the median line.
@@ -686,20 +696,36 @@ function renderDistribution(yearIdx) {
 /* ---------- Stat cards ------------------------------------------------- */
 
 function updateStats(P, s) {
-  const fmtAge = (a) => (Number.isNaN(a) ? "Never" : Math.round(a));
-  const prefix = (s.mc ? "median @" : "@") + s.evalAge + ": ";
-  const fmtMoney = (v) => (v == null || Number.isNaN(v) ? "" : prefix + compact.format(v));
+  // Big number = retirement age; the "yrs" unit hides when it reads "Never".
+  const setAge = (valId, unitId, a) => {
+    const isNum = !Number.isNaN(a);
+    document.getElementById(valId).textContent = isNum ? Math.round(a) : "Never";
+    document.getElementById(unitId).style.display = isNum ? "" : "none";
+  };
+  setAge("retireAgeA", "unitA", s.homeRetire);
+  setAge("retireAgeB", "unitB", s.noHomeRetire);
 
-  document.getElementById("retireAgeA").textContent = fmtAge(s.homeRetire);
-  document.getElementById("retireAgeB").textContent = fmtAge(s.noHomeRetire);
-  document.getElementById("endBalA").textContent = fmtMoney(s.homeEnd);
-  document.getElementById("endBalB").textContent = fmtMoney(s.noHomeEnd);
+  // Net-worth metric: a label carrying the checkpoint age + a value (red if < 0).
+  const nwTag = (s.mc ? "Median net worth @" : "Net worth @") + s.evalAge;
+  document.getElementById("nwLabelA").textContent = nwTag;
+  document.getElementById("nwLabelB").textContent = nwTag;
+  const setMoney = (id, v) => {
+    const el = document.getElementById(id);
+    el.textContent = v == null || Number.isNaN(v) ? "—" : compact.format(v);
+    el.classList.toggle("neg", typeof v === "number" && v < 0);
+  };
+  setMoney("endBalA", s.homeEnd);
+  setMoney("endBalB", s.noHomeEnd);
 
   const houseBadge = document.getElementById("houseAgeBadge");
   const loseBadge = document.getElementById("loseHouseBadge");
   const survB = document.getElementById("survivalB");
-  const houseText = () =>
-    Number.isNaN(s.homeHouseAge) ? "no house bought" : "house at " + Math.round(s.homeHouseAge);
+  // "house at 29 · 2029" — age plus the calendar year of purchase.
+  const houseText = () => {
+    if (Number.isNaN(s.homeHouseAge)) return "no house bought";
+    const age = Math.round(s.homeHouseAge);
+    return "house at " + age + " · " + (NOW_YEAR + age - P.currentAge);
+  };
   const solvency = (insolventAge) =>
     Number.isNaN(insolventAge) ? "solvent @" + s.evalAge : "broke at " + insolventAge;
 
@@ -719,10 +745,14 @@ function updateStats(P, s) {
     survB.style.display = "none";
   }
 
-  // When spending erodes net worth below the home's value, the house is lost.
-  if (s.homeLoseAge != null && !Number.isNaN(s.homeLoseAge)) {
+  // House is lost once liquid assets run dry and the home must be sold.
+  if (s.mc) {
+    const lose = s.homeLoseProb || 0;
+    loseBadge.style.display = lose >= 0.005 ? "" : "none"; // hide when it rounds to 0%
+    loseBadge.textContent = pct(lose) + " lose house";
+  } else if (s.homeLoseAge != null && !Number.isNaN(s.homeLoseAge)) {
     loseBadge.style.display = "";
-    loseBadge.textContent = (s.mc ? "median: lose house at " : "lose house at ") + Math.round(s.homeLoseAge);
+    loseBadge.textContent = "lose house at " + Math.round(s.homeLoseAge);
   } else {
     loseBadge.style.display = "none";
   }
